@@ -1,0 +1,3 @@
+git+git://github.com/psf/black@master
+lxml==4.6.2
+requests==2.25.1

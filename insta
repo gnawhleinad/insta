@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+INSTAPAPER = "https://www.instapaper.com"
+
+
+def run(username, password, debug):
+    session = requests.Session()
+
+    if debug:
+        import logging
+        from http.client import HTTPConnection
+
+        HTTPConnection.debuglevel = 1
+        logging.basicConfig()
+        logging.getLogger().setLevel(logging.DEBUG)
+        requests_log = logging.getLogger("urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
+
+    login = {
+        "username": username,
+        "password": password,
+        "keep_logged_in": "yes",
+        "a": "",
+        "hello2": "yup",
+        "s": "",
+        "u": "",
+        "t": "",
+    }
+    response = session.post(INSTAPAPER + "/user/login", data=login)
+    if response.status_code != 200:
+        return
+    elif not all(
+        cookie in ["pfh", "pfp", "pfu"]
+        for cookie in session.cookies.get_dict().keys()
+    ):
+        return
+
+    html = lxml.html.fromstring(response.text)
+    key = html.xpath("//input[@id='form_key']/@value")[0]
+    send = {"form_key": key, "submit": 1}
+    response = session.post(INSTAPAPER + "/user/kindle_send_now", data=send)
+    return response.status_code == 200
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--username", type=str, required=True, help="who dis?")
+    parser.add_argument(
+        "--password", type=str, required=True, help="s.e.c.r.e.t."
+    )
+    parser.add_argument("--debug", action="store_true", help="wut.")
+    args = parser.parse_args()
+
+    import sys
+    import requests
+    import lxml.html
+
+    if not run(args.username, args.password, args.debug):
+        print("ERROR: something went wrong")
+        sys.exit(2)
+
+    print("awwyeauh", end="")
+else:
+    print("ERROR: nah")
+    sys.exit(2)
