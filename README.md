@@ -1,12 +1,24 @@
-trigger send articles to kindle now on [instapaper.com]
+command-line interface for [instapaper.com]
 
 [instapaper.com]: https://instapaper.com
 
-### usage
+### setup
 
 ```bash
 $ pyenv install
 $ pip install -r requirements.txt
-$ ./insta --username hodor --password Ho1dthed00r
-awwyeauh
+```
+
+### usage
+
+command   | functionality
+--------- | -------------
+`send`    | send articles to kindle
+`archive` | archive all articles
+
+```bash
+$ ./insta --username hodor --password Ho1dthed00r send && \
+  ./insta --username hodor --password Ho1dthed00r archive
+sent successfully!
+archived successfully!
 ```

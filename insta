@@ -3,66 +3,91 @@
 INSTAPAPER = "https://www.instapaper.com"
 
 
-def run(username, password, debug):
-    session = requests.Session()
+class Insta:
+    def __init__(self, username, password, debug):
+        self.username = username
+        self.password = password
 
-    if debug:
-        import logging
-        from http.client import HTTPConnection
+        self.session = session = requests.Session()
+        if debug:
+            import logging
+            from http.client import HTTPConnection
 
-        HTTPConnection.debuglevel = 1
-        logging.basicConfig()
-        logging.getLogger().setLevel(logging.DEBUG)
-        requests_log = logging.getLogger("urllib3")
-        requests_log.setLevel(logging.DEBUG)
-        requests_log.propagate = True
+            HTTPConnection.debuglevel = 1
+            logging.basicConfig()
+            logging.getLogger().setLevel(logging.DEBUG)
+            requests_log = logging.getLogger("urllib3")
+            requests_log.setLevel(logging.DEBUG)
+            requests_log.propagate = True
 
-    login = {
-        "username": username,
-        "password": password,
-        "keep_logged_in": "yes",
-        "a": "",
-        "hello2": "yup",
-        "s": "",
-        "u": "",
-        "t": "",
-    }
-    response = session.post(INSTAPAPER + "/user/login", data=login)
-    if response.status_code != 200:
-        return
-    elif not all(
-        cookie in ["pfh", "pfp", "pfu"]
-        for cookie in session.cookies.get_dict().keys()
-    ):
-        return
+    def login(self):
+        login = {
+            "username": self.username,
+            "password": self.password,
+            "keep_logged_in": "yes",
+            "a": "",
+            "hello2": "yup",
+            "s": "",
+            "u": "",
+            "t": "",
+        }
+        response = self.session.post(INSTAPAPER + "/user/login", data=login)
+        if response.status_code != 200:
+            return
+        elif not all(
+            cookie in ["pfh", "pfp", "pfu"]
+            for cookie in self.session.cookies.get_dict().keys()
+        ):
+            return
 
-    html = lxml.html.fromstring(response.text)
-    key = html.xpath("//input[@id='form_key']/@value")[0]
-    send = {"form_key": key, "submit": 1}
-    response = session.post(INSTAPAPER + "/user/kindle_send_now", data=send)
-    return response.status_code == 200
+        import lxml.html
+
+        html = lxml.html.fromstring(response.text)
+        self.key = html.xpath("//input[@id='form_key']/@value")[0]
+        return True
+
+    def send(self):
+        send = {"form_key": self.key, "submit": 1}
+        response = self.session.post(
+            INSTAPAPER + "/user/kindle_send_now", data=send
+        )
+        return response.status_code == 200
+
+    def archive(self):
+        archive = {"form_key": self.key}
+        response = self.session.post(INSTAPAPER + "/bulk-archive", data=archive)
+        return response.status_code == 200
 
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--username", type=str, required=True, help="who dis?")
     parser.add_argument(
-        "--password", type=str, required=True, help="s.e.c.r.e.t."
+        "--username", type=str, required=True, help="instapaper.com username"
     )
-    parser.add_argument("--debug", action="store_true", help="wut.")
+    parser.add_argument(
+        "--password", type=str, required=True, help="instapaper.com password"
+    )
+    parser.add_argument("--debug", action="store_true", help="debug logging")
+    subparsers = parser.add_subparsers(
+        dest="command", metavar="command", required=True
+    )
+    subparsers.add_parser("send", help="send articles to kindle")
+    subparsers.add_parser("archive", help="archive all articles")
     args = parser.parse_args()
 
     import sys
     import requests
-    import lxml.html
 
-    if not run(args.username, args.password, args.debug):
+    insta = Insta(args.username, args.password, args.debug)
+    run = {"send": insta.send, "archive": insta.archive}
+    if not insta.login() or not run[args.command]():
         print("ERROR: something went wrong")
         sys.exit(2)
 
-    print("awwyeauh", end="")
+    verb = {"send": "sent", "archive": "archived"}
+    print(verb[args.command] + " successfully!")
 else:
-    print("ERROR: nah")
+    print("ERROR: not supported")
     sys.exit(2)
