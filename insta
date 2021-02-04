@@ -8,7 +8,7 @@ class Insta:
         self.username = username
         self.password = password
 
-        self.session = session = requests.Session()
+        self.session = requests.Session()
         if debug:
             import logging
             from http.client import HTTPConnection
